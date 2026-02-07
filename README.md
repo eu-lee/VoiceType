@@ -5,8 +5,9 @@ A minimal macOS menu bar app for push-to-talk speech transcription using whisper
 ## Features
 
 - **Push-to-Talk**: Hold Option+Space to record, release to transcribe
-- **Local Processing**: Uses whisper.cpp with the tiny.en model (ggml-tiny.en.bin)
+- **Local Processing**: Uses whisper.cpp with the base.en model (ggml-base.en.bin)
 - **Fast Transcription**: 3-5 seconds on Apple Silicon with Core ML
+- **Dual-Engine Racing**: Races SFSpeech and Whisper for optimal speed and accuracy
 - **Text Injection**: Automatically pastes transcribed text into the active app
 
 ## Requirements
@@ -33,13 +34,16 @@ open Package.swift
 
 1. **Grant Microphone Permission**: The app will prompt for microphone access
 2. **Grant Accessibility Permission**: Required to paste text into other apps (System Settings → Privacy & Security → Accessibility)
-3. **Install Model**: Download the model from:
+3. **Grant Speech Recognition Permission**: Required for on-device SFSpeech transcription
+4. **Install Model**: Download the model from:
    ```
-   https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en.bin
+   https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin
    ```
-   Place it manually at:
+   Or use the in-app downloader in Settings → Model → "Install Model"
+
+   To install manually, place it at:
    ```
-   ~/Library/Application Support/VoiceType/Models/ggml-tiny.en.bin
+   ~/Library/Application Support/VoiceType/Models/ggml-base.en.bin
    ```
 
 ## Usage
@@ -52,9 +56,16 @@ open Package.swift
 
 ## Settings
 
-- **Hotkey**: Configure the push-to-talk shortcut
-- **Launch at Login**: Start automatically when you log in
-- **Model Management**: Install the Whisper model
+- **General**:
+  - Configure the push-to-talk shortcut
+  - Toggle "Launch at Login" to start automatically when you log in
+- **Model**:
+  - Install or delete the Whisper base.en model
+  - View model size and status
+  - Download model directly from HuggingFace
+- **Permissions**:
+  - View and manage microphone, accessibility, and speech recognition permissions
+  - Quick links to open System Settings for each permission
 
 ## How It Works
 
@@ -94,11 +105,12 @@ VoiceType uses a **dual-engine racing pipeline** for fast and accurate transcrip
 - Returns early partial results as they arrive
 
 **Whisper (ML Model)**
-- Local `ggml-tiny.en.bin` model (requires manual installation)
-- Higher accuracy, especially on accented speech and technical words
+- Local `ggml-base.en.bin` model (can be downloaded in-app or manually installed)
+- Higher accuracy than SFSpeech, especially on accented speech and technical words
 - Requires audio resampling to 16kHz mono
 - Slower but more reliable (3-5 seconds)
 - Runs in parallel without blocking the UI
+- Supports Core ML acceleration for faster inference on Apple Silicon
 
 ### Why Two Engines?
 
@@ -131,7 +143,8 @@ VoiceType/
 │   │   └── AudioResampler.swift # Convert to 16kHz mono
 │   ├── Transcription/
 │   │   ├── WhisperService.swift # SwiftWhisper wrapper
-│   │   ├── TranscriptionCoordinator.swift  # Pipeline orchestrator
+│   │   ├── SpeechRecognitionService.swift # SFSpeech wrapper
+│   │   ├── TranscriptionCoordinator.swift  # Dual-engine pipeline orchestrator
 │   │   └── ModelManager.swift   # Download & load models
 │   ├── TextOutput/
 │   │   └── TextInjector.swift   # Clipboard paste injection
@@ -142,7 +155,7 @@ VoiceType/
 │   ├── StatusIcon.swift         # Dynamic menu bar icon
 │   └── SettingsView.swift       # Preferences window
 └── Services/
-    └── PermissionService.swift  # Mic + Accessibility checks
+    └── PermissionService.swift  # Mic + Accessibility + Speech Recognition checks
 ```
 
 ## Dependencies
