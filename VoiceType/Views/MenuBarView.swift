@@ -114,7 +114,7 @@ struct MenuBarView: View {
             }
 
             if case .notDownloaded = appState.modelState {
-                Button("Download Model (~460MB)") {
+                Button("Install Model") {
                     Task {
                         await coordinator.downloadAndLoadModel()
                     }

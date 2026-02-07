@@ -146,9 +146,9 @@ enum ModelError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .downloadFailed:
-            return "Failed to download model"
+            return "Failed to load model. Please ensure ggml-tiny.en.bin is placed in ~/Library/Application Support/VoiceType/Models/"
         case .modelNotFound:
-            return "Model file not found"
+            return "Model file not found. Please download ggml-tiny.en.bin from https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en.bin and place it in ~/Library/Application Support/VoiceType/Models/"
         }
     }
 }

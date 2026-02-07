@@ -114,7 +114,7 @@ struct ModelSettingsView: View {
 
             Section {
                 if case .notDownloaded = appState.modelState {
-                    Button("Download Model") {
+                    Button("Install Model") {
                         Task {
                             await coordinator.downloadAndLoadModel()
                         }
