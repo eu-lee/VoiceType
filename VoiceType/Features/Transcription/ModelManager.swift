@@ -86,31 +86,22 @@ final class ModelManager {
 
     /// Download a file with progress reporting
     private func downloadFile(from url: URL, to destination: URL) async throws {
-        let (asyncBytes, response) = try await URLSession.shared.bytes(from: url)
+        let delegate = DownloadProgressDelegate { [weak self] progress in
+            Task { @MainActor in
+                self?.downloadProgress = progress
+            }
+        }
+
+        let (tempURL, response) = try await URLSession.shared.download(from: url, delegate: delegate)
 
         guard let httpResponse = response as? HTTPURLResponse,
               httpResponse.statusCode == 200 else {
             throw ModelError.downloadFailed
         }
 
-        let expectedLength = response.expectedContentLength
-        var receivedLength: Int64 = 0
-        var data = Data()
-        data.reserveCapacity(Int(expectedLength))
-
-        for try await byte in asyncBytes {
-            data.append(byte)
-            receivedLength += 1
-
-            if expectedLength > 0 {
-                let progress = Double(receivedLength) / Double(expectedLength)
-                await MainActor.run {
-                    self.downloadProgress = progress
-                }
-            }
-        }
-
-        try data.write(to: destination)
+        // Remove existing file if present, then move temp file to destination
+        try? FileManager.default.removeItem(at: destination)
+        try FileManager.default.moveItem(at: tempURL, to: destination)
     }
 
     /// Delete downloaded model
@@ -136,6 +127,56 @@ final class ModelManager {
         let formatter = ByteCountFormatter()
         formatter.countStyle = .file
         return formatter.string(fromByteCount: size)
+    }
+}
+
+/// URLSession delegate that reports download progress via a callback
+private final class DownloadProgressDelegate: NSObject, URLSessionTaskDelegate {
+    private let onProgress: (Double) -> Void
+
+    init(onProgress: @escaping (Double) -> Void) {
+        self.onProgress = onProgress
+    }
+
+    func urlSession(
+        _ session: URLSession,
+        didCreateTask task: URLSessionTask
+    ) {
+        task.delegate = self
+    }
+
+    func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        didSendBodyContent bytesSent: Int64,
+        totalBytesSent: Int64,
+        totalBytesExpectedToSend: Int64
+    ) {}
+
+    func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        didCompleteWithError error: (any Error)?
+    ) {}
+}
+
+extension DownloadProgressDelegate: URLSessionDownloadDelegate {
+    func urlSession(
+        _ session: URLSession,
+        downloadTask: URLSessionDownloadTask,
+        didFinishDownloadingTo location: URL
+    ) {}
+
+    func urlSession(
+        _ session: URLSession,
+        downloadTask: URLSessionDownloadTask,
+        didWriteData bytesWritten: Int64,
+        totalBytesWritten: Int64,
+        totalBytesExpectedToWrite: Int64
+    ) {
+        guard totalBytesExpectedToWrite > 0 else { return }
+        let progress = Double(totalBytesWritten) / Double(totalBytesExpectedToWrite)
+        onProgress(progress)
     }
 }
 

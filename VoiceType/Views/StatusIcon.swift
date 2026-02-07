@@ -12,9 +12,7 @@ struct StatusIcon: View {
 
     private var iconName: String {
         switch appState.status {
-        case .idle:
-            return "quote.bubble.fill"
-        case .recording, .transcribing:
+        case .idle, .recording, .transcribing:
             return "waveform"
         case .complete:
             return "checkmark.circle"

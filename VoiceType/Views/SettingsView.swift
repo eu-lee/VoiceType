@@ -1,6 +1,5 @@
 import SwiftUI
 import KeyboardShortcuts
-import ServiceManagement
 
 /// Settings window with tabs
 struct SettingsView: View {
@@ -28,6 +27,13 @@ struct SettingsView: View {
 /// General settings tab
 struct GeneralSettingsView: View {
     @State private var launchAtLogin = false
+    @State private var loginItemError: String?
+
+    private static let launchAgentLabel = "com.voicetype.launcher"
+    private static var launchAgentURL: URL {
+        FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/LaunchAgents/\(launchAgentLabel).plist")
+    }
 
     var body: some View {
         Form {
@@ -42,6 +48,12 @@ struct GeneralSettingsView: View {
                     .onChange(of: launchAtLogin) { _, newValue in
                         setLaunchAtLogin(newValue)
                     }
+
+                if let loginItemError {
+                    Text(loginItemError)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
             }
 
             Section {
@@ -57,19 +69,31 @@ struct GeneralSettingsView: View {
         .formStyle(.grouped)
         .padding()
         .onAppear {
-            launchAtLogin = SMAppService.mainApp.status == .enabled
+            launchAtLogin = FileManager.default.fileExists(atPath: Self.launchAgentURL.path)
         }
     }
 
     private func setLaunchAtLogin(_ enabled: Bool) {
+        loginItemError = nil
         do {
             if enabled {
-                try SMAppService.mainApp.register()
+                let executablePath = ProcessInfo.processInfo.arguments[0]
+                let plist: [String: Any] = [
+                    "Label": Self.launchAgentLabel,
+                    "ProgramArguments": [executablePath],
+                    "RunAtLoad": true,
+                    "KeepAlive": false
+                ]
+                let data = try PropertyListSerialization.data(
+                    fromPropertyList: plist, format: .xml, options: 0
+                )
+                try data.write(to: Self.launchAgentURL)
             } else {
-                try SMAppService.mainApp.unregister()
+                try FileManager.default.removeItem(at: Self.launchAgentURL)
             }
         } catch {
-            print("Failed to set launch at login: \(error)")
+            launchAtLogin = FileManager.default.fileExists(atPath: Self.launchAgentURL.path)
+            loginItemError = "Failed to update login item: \(error.localizedDescription)"
         }
     }
 }
@@ -87,7 +111,7 @@ struct ModelSettingsView: View {
                 HStack {
                     Text("Model")
                     Spacer()
-                    Text("small.en")
+                    Text("base.en")
                         .foregroundStyle(.secondary)
                 }
 
