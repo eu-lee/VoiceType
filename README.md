@@ -14,6 +14,7 @@ A minimal macOS menu bar app for push-to-talk speech transcription using whisper
 - macOS 14.0 (Sonoma) or later
 - Apple Silicon recommended for best performance
 
+- 
 ## Building
 
 ```bash
