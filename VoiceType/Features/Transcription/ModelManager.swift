@@ -7,10 +7,10 @@ final class ModelManager {
     static let shared = ModelManager()
 
     /// Model file name
-    private let modelFileName = "ggml-tiny.en.bin"
+    private let modelFileName = "ggml-base.en.bin"
 
     /// Core ML encoder file name
-    private let coreMLEncoderName = "ggml-tiny.en-encoder.mlmodelc"
+    private let coreMLEncoderName = "ggml-base.en-encoder.mlmodelc"
 
     /// HuggingFace base URL for models
     private let huggingFaceBaseURL = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main"
@@ -146,9 +146,9 @@ enum ModelError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .downloadFailed:
-            return "Failed to load model. Please ensure ggml-tiny.en.bin is placed in ~/Library/Application Support/VoiceType/Models/"
+            return "Failed to load model. Please ensure ggml-base.en.bin is placed in ~/Library/Application Support/VoiceType/Models/"
         case .modelNotFound:
-            return "Model file not found. Please download ggml-tiny.en.bin from https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en.bin and place it in ~/Library/Application Support/VoiceType/Models/"
+            return "Model file not found. Please download ggml-base.en.bin from https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin and place it in ~/Library/Application Support/VoiceType/Models/"
         }
     }
 }
