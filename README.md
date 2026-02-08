@@ -17,17 +17,77 @@ A minimal macOS menu bar app for push-to-talk speech transcription using whisper
 
 ## Building
 
+### Quick Start (Development)
+
 ```bash
-# Clone and build
+# Build debug version
 swift build
 
 # Run
 .build/debug/VoiceType
 ```
 
-Or open in Xcode:
+### Build Release App for Applications Folder
+
+#### Option 1: Using Xcode (Recommended)
+
+1. Open the project in Xcode:
+   ```bash
+   open Package.swift
+   ```
+
+2. In Xcode:
+   - Select **Product → Archive**
+   - Once archived, click **Distribute App**
+   - Choose **Copy App**
+   - Save the app bundle to your desired location
+   - Move `VoiceType.app` to `/Applications`
+
+#### Option 2: Manual Build Script
+
+Create a standalone app bundle that can be installed to `/Applications`:
+
 ```bash
-open Package.swift
+# Build release version
+swift build -c release
+
+# Create app bundle structure
+mkdir -p VoiceType.app/Contents/MacOS
+mkdir -p VoiceType.app/Contents/Resources
+
+# Copy executable
+cp .build/release/VoiceType VoiceType.app/Contents/MacOS/
+
+# Copy Info.plist
+cp VoiceType/Info.plist VoiceType.app/Contents/
+
+# Update Info.plist with bundle identifier and version
+/usr/libexec/PlistBuddy -c "Add :CFBundleExecutable string VoiceType" VoiceType.app/Contents/Info.plist
+/usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string com.voicetype.app" VoiceType.app/Contents/Info.plist
+/usr/libexec/PlistBuddy -c "Add :CFBundleName string VoiceType" VoiceType.app/Contents/Info.plist
+/usr/libexec/PlistBuddy -c "Add :CFBundleVersion string 1.0.0" VoiceType.app/Contents/Info.plist
+/usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string 1.0.0" VoiceType.app/Contents/Info.plist
+
+# Install to Applications
+cp -R VoiceType.app /Applications/
+
+# Launch the app
+open /Applications/VoiceType.app
+```
+
+Or use this one-liner:
+```bash
+swift build -c release && \
+mkdir -p VoiceType.app/Contents/{MacOS,Resources} && \
+cp .build/release/VoiceType VoiceType.app/Contents/MacOS/ && \
+cp VoiceType/Info.plist VoiceType.app/Contents/ && \
+/usr/libexec/PlistBuddy -c "Add :CFBundleExecutable string VoiceType" VoiceType.app/Contents/Info.plist 2>/dev/null && \
+/usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string com.voicetype.app" VoiceType.app/Contents/Info.plist 2>/dev/null && \
+/usr/libexec/PlistBuddy -c "Add :CFBundleName string VoiceType" VoiceType.app/Contents/Info.plist 2>/dev/null && \
+/usr/libexec/PlistBuddy -c "Add :CFBundleVersion string 1.0.0" VoiceType.app/Contents/Info.plist 2>/dev/null && \
+/usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string 1.0.0" VoiceType.app/Contents/Info.plist 2>/dev/null && \
+cp -R VoiceType.app /Applications/ && \
+echo "✓ VoiceType.app installed to /Applications"
 ```
 
 ## First Run
