@@ -7,16 +7,13 @@ final class ModelManager {
     static let shared = ModelManager()
 
     /// Model file name
-    private let modelFileName = "ggml-base.en.bin"
+    private let modelFileName = "ggml-small.en.bin"
 
     /// Core ML encoder file name
-    private let coreMLEncoderName = "ggml-base.en-encoder.mlmodelc"
+    private let coreMLEncoderName = "ggml-small.en-encoder.mlmodelc"
 
     /// HuggingFace base URL for models
     private let huggingFaceBaseURL = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main"
-
-    /// Current download progress (0.0 to 1.0)
-    var downloadProgress: Double = 0.0
 
     /// Whether download is in progress
     var isDownloading = false
@@ -59,13 +56,12 @@ final class ModelManager {
         try? FileManager.default.createDirectory(at: modelsDirectory, withIntermediateDirectories: true)
     }
 
-    /// Download the Whisper model
+    /// Download the Whisper model and CoreML encoder
     func downloadModel() async throws {
         guard !isDownloading else { return }
 
         await MainActor.run {
             isDownloading = true
-            downloadProgress = 0.0
             errorMessage = nil
         }
 
@@ -79,20 +75,42 @@ final class ModelManager {
         let modelURL = URL(string: "\(huggingFaceBaseURL)/\(modelFileName)")!
         try await downloadFile(from: modelURL, to: modelPath)
 
-        // Try to download Core ML encoder (optional, may not be available)
-        // Note: Core ML models need to be compiled, so we skip this for now
-        // Users can manually add compiled Core ML models if desired
-    }
+        // Download pre-compiled Core ML encoder for Neural Engine acceleration
+        if !hasCoreMLEncoder {
+            let encoderZipName = "\(coreMLEncoderName).zip"
+            let encoderURL = URL(string: "\(huggingFaceBaseURL)/\(encoderZipName)")!
+            let zipDestination = modelsDirectory.appendingPathComponent(encoderZipName)
 
-    /// Download a file with progress reporting
-    private func downloadFile(from url: URL, to destination: URL) async throws {
-        let delegate = DownloadProgressDelegate { [weak self] progress in
-            Task { @MainActor in
-                self?.downloadProgress = progress
+            do {
+                try await downloadFile(from: encoderURL, to: zipDestination)
+                try unzipCoreMLEncoder(from: zipDestination)
+                try? FileManager.default.removeItem(at: zipDestination)
+                print("[ModelManager] CoreML encoder installed")
+            } catch {
+                try? FileManager.default.removeItem(at: zipDestination)
+                print("[ModelManager] CoreML encoder download failed (non-fatal): \(error.localizedDescription)")
             }
         }
+    }
 
-        let (tempURL, response) = try await URLSession.shared.download(from: url, delegate: delegate)
+    /// Unzip the CoreML encoder bundle
+    private func unzipCoreMLEncoder(from zipURL: URL) throws {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
+        process.arguments = ["-o", zipURL.path, "-d", modelsDirectory.path]
+        process.standardOutput = nil
+        process.standardError = nil
+        try process.run()
+        process.waitUntilExit()
+
+        guard process.terminationStatus == 0 else {
+            throw ModelError.downloadFailed
+        }
+    }
+
+    /// Download a file
+    private func downloadFile(from url: URL, to destination: URL) async throws {
+        let (tempURL, response) = try await URLSession.shared.download(from: url)
 
         guard let httpResponse = response as? HTTPURLResponse,
               httpResponse.statusCode == 200 else {
@@ -130,56 +148,6 @@ final class ModelManager {
     }
 }
 
-/// URLSession delegate that reports download progress via a callback
-private final class DownloadProgressDelegate: NSObject, URLSessionTaskDelegate {
-    private let onProgress: (Double) -> Void
-
-    init(onProgress: @escaping (Double) -> Void) {
-        self.onProgress = onProgress
-    }
-
-    func urlSession(
-        _ session: URLSession,
-        didCreateTask task: URLSessionTask
-    ) {
-        task.delegate = self
-    }
-
-    func urlSession(
-        _ session: URLSession,
-        task: URLSessionTask,
-        didSendBodyContent bytesSent: Int64,
-        totalBytesSent: Int64,
-        totalBytesExpectedToSend: Int64
-    ) {}
-
-    func urlSession(
-        _ session: URLSession,
-        task: URLSessionTask,
-        didCompleteWithError error: (any Error)?
-    ) {}
-}
-
-extension DownloadProgressDelegate: URLSessionDownloadDelegate {
-    func urlSession(
-        _ session: URLSession,
-        downloadTask: URLSessionDownloadTask,
-        didFinishDownloadingTo location: URL
-    ) {}
-
-    func urlSession(
-        _ session: URLSession,
-        downloadTask: URLSessionDownloadTask,
-        didWriteData bytesWritten: Int64,
-        totalBytesWritten: Int64,
-        totalBytesExpectedToWrite: Int64
-    ) {
-        guard totalBytesExpectedToWrite > 0 else { return }
-        let progress = Double(totalBytesWritten) / Double(totalBytesExpectedToWrite)
-        onProgress(progress)
-    }
-}
-
 enum ModelError: LocalizedError {
     case downloadFailed
     case modelNotFound
@@ -187,9 +155,9 @@ enum ModelError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .downloadFailed:
-            return "Failed to load model. Please ensure ggml-base.en.bin is placed in ~/Library/Application Support/VoiceType/Models/"
+            return "Failed to load model. Please ensure ggml-small.en.bin is placed in ~/Library/Application Support/VoiceType/Models/"
         case .modelNotFound:
-            return "Model file not found. Please download ggml-base.en.bin from https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin and place it in ~/Library/Application Support/VoiceType/Models/"
+            return "Model file not found. Please download ggml-small.en.bin from https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.en.bin and place it in ~/Library/Application Support/VoiceType/Models/"
         }
     }
 }

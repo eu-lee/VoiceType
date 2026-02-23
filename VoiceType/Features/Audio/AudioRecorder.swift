@@ -11,9 +11,6 @@ final class AudioRecorder {
     /// Callback for audio level updates (0.0 to 1.0)
     var onAudioLevel: ((Float) -> Void)?
 
-    /// Callback for raw audio buffers (called from real-time audio thread)
-    var onAudioBuffer: ((AVAudioPCMBuffer) -> Void)?
-
     /// Whether currently recording
     private(set) var isRecording = false
 
@@ -92,9 +89,6 @@ final class AudioRecorder {
 
     /// Process incoming audio buffer
     private func processAudioBuffer(_ buffer: AVAudioPCMBuffer) {
-        // Forward raw buffer to speech recognition before any processing
-        onAudioBuffer?(buffer)
-
         guard let channelData = buffer.floatChannelData else { return }
 
         let channelCount = Int(buffer.format.channelCount)

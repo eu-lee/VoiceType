@@ -1,6 +1,5 @@
 import AVFoundation
 import AppKit
-import Speech
 
 /// Handles permission checking and requesting
 @Observable
@@ -21,11 +20,6 @@ final class PermissionService {
     /// Whether accessibility permission is granted
     var hasAccessibilityPermission: Bool {
         AXIsProcessTrusted()
-    }
-
-    /// Whether speech recognition permission is granted
-    var hasSpeechPermission: Bool {
-        SFSpeechRecognizer.authorizationStatus() == .authorized
     }
 
     private init() {}
@@ -59,27 +53,11 @@ final class PermissionService {
         NSWorkspace.shared.open(url)
     }
 
-    /// Request speech recognition permission
-    func requestSpeechPermission() async -> Bool {
-        if SFSpeechRecognizer.authorizationStatus() != .notDetermined {
-            return hasSpeechPermission
-        }
-        let status = await SpeechRecognitionService.requestAuthorization()
-        return status == .authorized
-    }
-
-    /// Open System Settings to Speech Recognition pane
-    func openSpeechSettings() {
-        let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_SpeechRecognition")!
-        NSWorkspace.shared.open(url)
-    }
-
     /// Update app state with current permissions
     @MainActor
     func updateAppState(_ appState: AppState) {
         appState.hasMicrophonePermission = hasMicrophonePermission
         appState.hasAccessibilityPermission = hasAccessibilityPermission
-        appState.hasSpeechPermission = hasSpeechPermission
     }
 
     /// Check all permissions and request if needed
@@ -91,14 +69,6 @@ final class PermissionService {
             appState.hasMicrophonePermission = granted
         } else {
             appState.hasMicrophonePermission = true
-        }
-
-        // Check speech recognition
-        if !hasSpeechPermission {
-            let granted = await requestSpeechPermission()
-            appState.hasSpeechPermission = granted
-        } else {
-            appState.hasSpeechPermission = true
         }
 
         // Check accessibility (can only prompt, not auto-grant)

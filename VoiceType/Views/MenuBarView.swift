@@ -17,7 +17,7 @@ struct MenuBarView: View {
             Divider()
 
             // Permissions section (if needed)
-            if !appState.hasMicrophonePermission || !appState.hasAccessibilityPermission || !appState.hasSpeechPermission {
+            if !appState.hasMicrophonePermission || !appState.hasAccessibilityPermission {
                 permissionsSection
                 Divider()
             }
@@ -85,13 +85,6 @@ struct MenuBarView: View {
                 }
             }
 
-            if !appState.hasSpeechPermission {
-                Button {
-                    permissionService.openSpeechSettings()
-                } label: {
-                    Label("Grant Speech Recognition", systemImage: "waveform.badge.mic")
-                }
-            }
         }
     }
 
@@ -109,9 +102,9 @@ struct MenuBarView: View {
                     .foregroundStyle(.secondary)
             }
 
-            if case .downloading(let progress) = appState.modelState {
-                ProgressView(value: progress)
-                    .progressViewStyle(.linear)
+            if case .downloading = appState.modelState {
+                ProgressView()
+                    .controlSize(.small)
             }
 
             if case .notDownloaded = appState.modelState {

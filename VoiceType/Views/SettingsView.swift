@@ -122,7 +122,7 @@ struct ModelSettingsView: View {
                 HStack {
                     Text("Model")
                     Spacer()
-                    Text("base.en")
+                    Text("small.en")
                         .foregroundStyle(.secondary)
                 }
 
@@ -140,9 +140,12 @@ struct ModelSettingsView: View {
                         .foregroundStyle(modelStatusColor)
                 }
 
-                if case .downloading(let progress) = appState.modelState {
-                    ProgressView(value: progress) {
+                if case .downloading = appState.modelState {
+                    HStack {
+                        ProgressView()
+                            .controlSize(.small)
                         Text("Downloading...")
+                            .foregroundStyle(.secondary)
                     }
                 }
             }
@@ -248,23 +251,6 @@ struct PermissionsSettingsView: View {
                     }
                 }
 
-                HStack {
-                    Image(systemName: appState.hasSpeechPermission ? "checkmark.circle.fill" : "xmark.circle.fill")
-                        .foregroundStyle(appState.hasSpeechPermission ? .green : .red)
-
-                    Text("Speech Recognition")
-
-                    Spacer()
-
-                    if !appState.hasSpeechPermission {
-                        Button("Open Settings") {
-                            permissionService.openSpeechSettings()
-                        }
-                    } else {
-                        Text("Granted")
-                            .foregroundStyle(.secondary)
-                    }
-                }
             }
 
             Section {
@@ -276,9 +262,6 @@ struct PermissionsSettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                Text("Speech recognition is used for instant on-device transcription.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
 
             Section {

@@ -13,7 +13,7 @@ enum AppStatus: Equatable {
 /// Represents the state of the Whisper model
 enum ModelState: Equatable {
     case notDownloaded
-    case downloading(progress: Double)
+    case downloading
     case ready
     case error(String)
 }
@@ -36,8 +36,6 @@ final class AppState {
     /// Whether accessibility permission is granted
     var hasAccessibilityPermission: Bool = false
 
-    /// Whether speech recognition permission is granted
-    var hasSpeechPermission: Bool = false
 
     /// Status message for display
     var statusMessage: String {
@@ -60,8 +58,8 @@ final class AppState {
         switch modelState {
         case .notDownloaded:
             return "Model not downloaded"
-        case .downloading(let progress):
-            return "Downloading: \(Int(progress * 100))%"
+        case .downloading:
+            return "Downloading..."
         case .ready:
             return "Model ready"
         case .error(let message):
@@ -71,6 +69,6 @@ final class AppState {
 
     /// Whether the app is ready to record
     var canRecord: Bool {
-        hasMicrophonePermission && hasSpeechPermission && status == .idle
+        hasMicrophonePermission && status == .idle
     }
 }
