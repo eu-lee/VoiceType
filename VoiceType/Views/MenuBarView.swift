@@ -7,6 +7,7 @@ struct MenuBarView: View {
     @State private var coordinator = TranscriptionCoordinator.shared
     @State private var hotkeyManager = HotkeyManager.shared
     @State private var permissionService = PermissionService.shared
+    @State private var deviceManager = AudioDeviceManager.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -137,6 +138,18 @@ struct MenuBarView: View {
                 Text("Hotkey:")
                     .foregroundStyle(.secondary)
                 KeyboardShortcuts.Recorder(for: .pushToTalk)
+            }
+
+            Picker(selection: $deviceManager.selectedDeviceUID) {
+                Text("System Default")
+                    .tag(nil as String?)
+                ForEach(deviceManager.inputDevices) { device in
+                    Text(device.name)
+                        .tag(device.uid as String?)
+                }
+            } label: {
+                Label("Mic:", systemImage: "mic")
+                    .foregroundStyle(.secondary)
             }
 
             HStack {

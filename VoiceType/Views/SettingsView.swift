@@ -26,6 +26,7 @@ struct SettingsView: View {
 
 /// General settings tab
 struct GeneralSettingsView: View {
+    @State private var deviceManager = AudioDeviceManager.shared
     @State private var launchAtLogin = false
     @State private var loginItemError: String?
 
@@ -42,6 +43,15 @@ struct GeneralSettingsView: View {
                     Text("Push-to-Talk Hotkey")
                     Spacer()
                     KeyboardShortcuts.Recorder(for: .pushToTalk)
+                }
+
+                Picker("Microphone", selection: $deviceManager.selectedDeviceUID) {
+                    Text("System Default")
+                        .tag(nil as String?)
+                    ForEach(deviceManager.inputDevices) { device in
+                        Text(device.name)
+                            .tag(device.uid as String?)
+                    }
                 }
 
                 Toggle("Launch at Login", isOn: $launchAtLogin)
@@ -70,6 +80,7 @@ struct GeneralSettingsView: View {
         .padding()
         .onAppear {
             launchAtLogin = FileManager.default.fileExists(atPath: Self.launchAgentURL.path)
+            deviceManager.refreshDevices()
         }
     }
 

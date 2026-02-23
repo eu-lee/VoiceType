@@ -1,4 +1,5 @@
 import AVFoundation
+import CoreAudio
 import Foundation
 
 /// Handles microphone audio capture using AVAudioEngine
@@ -15,6 +16,33 @@ final class AudioRecorder {
 
     /// Whether currently recording
     private(set) var isRecording = false
+
+    /// Set the input device on the engine's input node.
+    /// Pass nil to use the system default.
+    func setInputDevice(_ deviceID: AudioDeviceID?) throws {
+        let inputNode = engine.inputNode
+        let audioUnit = inputNode.audioUnit!
+
+        if let deviceID {
+            var devID = deviceID
+            let status = AudioUnitSetProperty(
+                audioUnit,
+                kAudioOutputUnitProperty_CurrentDevice,
+                kAudioUnitScope_Global,
+                0,
+                &devID,
+                UInt32(MemoryLayout<AudioDeviceID>.size)
+            )
+            guard status == noErr else {
+                throw NSError(
+                    domain: NSOSStatusErrorDomain,
+                    code: Int(status),
+                    userInfo: [NSLocalizedDescriptionKey: "Failed to set input device (OSStatus \(status))"]
+                )
+            }
+        }
+        // When nil, AVAudioEngine uses system default — no action needed
+    }
 
     /// Start recording from the microphone
     func startRecording() throws {

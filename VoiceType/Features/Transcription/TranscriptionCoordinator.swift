@@ -41,6 +41,9 @@ final class TranscriptionCoordinator {
         guard appState.canRecord else { return }
 
         do {
+            // Set the user's preferred input device before starting
+            try audioRecorder.setInputDevice(AudioDeviceManager.shared.selectedDeviceID)
+
             // Start speech recognition first so it's ready when audio flows
             speechService.startSession()
 
